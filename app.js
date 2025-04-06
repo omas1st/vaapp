@@ -6,7 +6,7 @@ const mongoose = require('mongoose');
 const path = require('path');
 const app = express();
 
-// Trust Vercel's proxy
+// Trust Vercel's reverse proxy
 app.set('trust proxy', 1);
 
 // Database connection
@@ -14,9 +14,20 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('Connected to MongoDB'))
   .catch(err => console.error('MongoDB connection error:', err));
 
-// Enhanced session middleware
+// Middleware
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
+
+// CORS configuration for Vercel
+app.use((req, res, next) => {
+  if(process.env.NODE_ENV === 'production') {
+    res.setHeader('Access-Control-Allow-Origin', 'https://your-vercel-app.vercel.app');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+  next();
+});
+
+// Session configuration
 app.use(session({
     secret: process.env.SECRET_KEY,
     resave: false,
@@ -24,30 +35,27 @@ app.use(session({
     proxy: true,
     store: MongoStore.create({
         mongoUrl: process.env.MONGO_URI,
-        ttl: 14 * 24 * 60 * 60, // 14 days
-        autoRemove: 'native',
-        touchAfter: 24 * 3600 // 24 hours
+        ttl: 14 * 24 * 60 * 60 // 14 days
     }),
     cookie: {
         secure: process.env.NODE_ENV === 'production',
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        maxAge: 14 * 24 * 60 * 60 * 1000, // 14 days
-        httpOnly: true,
-        domain: process.env.NODE_ENV === 'production' ? '.yourdomain.com' : undefined
+        maxAge: 14 * 24 * 60 * 60 * 1000,
+        httpOnly: true
     }
 }));
 
 // Session debug middleware
 app.use((req, res, next) => {
-    console.log('Session Info:', {
+    console.log('Session Status:', {
         id: req.sessionID,
-        data: req.session,
-        cookies: req.headers.cookie
+        exists: !!req.session,
+        applicationId: req.session?.applicationId
     });
     next();
 });
 
-// View engine setup
+// View engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
@@ -59,8 +67,8 @@ app.use('/', visaRouter);
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).render('error', {
-        title: 'Application Error',
-        message: 'Something went wrong! Please try again later.'
+        title: 'Error',
+        message: 'Something went wrong!'
     });
 });
 
