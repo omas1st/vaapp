@@ -11,7 +11,7 @@ const Application = require('../model/Application');
 // Country data setup
 const countryNames = Object.values(countries).map(c => c.name).sort();
 
-// File upload configuration
+// File upload configuration (no longer used in /submit but kept in case of future needs)
 const upload = multer({
     dest: path.join(__dirname, '../uploads'),
     limits: { fileSize: 5 * 1024 * 1024 } // 5MB
@@ -151,15 +151,12 @@ router.get('/payment', checkSessionData, async (req, res) => {
     }
 });
 
-// Final Submission
-router.post('/submit', checkSessionData, upload.single('receipt'), async (req, res) => {
+// Final Submission (Updated: removed receipt upload and PDF generation logic)
+router.post('/submit', checkSessionData, async (req, res) => {
     try {
-        if (!req.file) throw new Error('No receipt uploaded');
-
-        // Update application with payment details
+        // Update application with payment details (no receipt file required now)
         const update = {
             paymentMethod: req.body.paymentMethod,
-            receiptPath: req.file.path,
             submittedAt: new Date(),
             status: 'submitted'
         };
@@ -167,30 +164,13 @@ router.post('/submit', checkSessionData, upload.single('receipt'), async (req, r
         await Application.findByIdAndUpdate(req.session.applicationId, update);
         const application = await Application.findById(req.session.applicationId);
 
-        // Generate PDF
-        const doc = new PDFDocument();
-        const pdfPath = path.join(__dirname, `../receipts/visa-application-${Date.now()}.pdf`);
-        const writeStream = fs.createWriteStream(pdfPath);
-        
-        doc.pipe(writeStream);
-        doc.fontSize(18).text('Visa Application Summary', { align: 'center' });
-        doc.moveDown();
-        
-        // Add application data
-        Object.entries(application.toObject()).forEach(([key, value]) => {
-            doc.fontSize(12).text(`${key}: ${value}`);
-        });
-        
-        doc.end();
-
         // Clear session
         req.session.destroy(err => {
             if (err) console.error('Session destruction error:', err);
         });
 
         res.render('success', {
-            title: 'Application Submitted',
-            pdfPath: `/receipts/${path.basename(pdfPath)}`
+            title: 'Application Submitted'
         });
 
     } catch (error) {
