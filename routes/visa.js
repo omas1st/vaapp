@@ -6,93 +6,102 @@ const multer = require('multer');
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
-
-// Models
 const Application = require('../model/Application');
 
-// Country data
+// Country data setup
 const countryNames = Object.values(countries).map(c => c.name).sort();
 
-// File upload setup
-const upload = multer({ 
+// File upload configuration
+const upload = multer({
     dest: path.join(__dirname, '../uploads'),
     limits: { fileSize: 5 * 1024 * 1024 } // 5MB
 });
 
-// routes/visa.js
-// routes/visa.js
+// Session validation middleware
 const checkSessionData = (req, res, next) => {
-    console.log('checkSessionData - req.path:', req.path);
-    console.log('Session data:', req.session);
-    // Update condition to check for applicationId instead of page1
+    console.log('Session Check:', {
+        path: req.path,
+        sessionId: req.sessionID,
+        applicationId: req.session.applicationId
+    });
+
     if (!req.session.applicationId && req.path !== '/') {
-        console.error('No applicationId found in session, redirecting to /');
-        return res.redirect('/');
+        console.error('Session validation failed - missing applicationId');
+        return res.redirect('/?error=session_expired');
     }
     next();
 };
 
-
-
-// Page 1 - Initial application
+// Page 1: Initial Application
 router.get('/', (req, res) => {
-    res.render('page1', { 
+    res.render('page1', {
         countries: countryNames,
-        title: 'Step 1: Application Details' 
+        title: 'Step 1: Application Details'
     });
 });
 
-// Save page1 data into DB and store document id in session
 router.post('/page1', async (req, res) => {
     try {
+        // Create new application
         const application = new Application({
             destination: req.body.destination,
             visaType: req.body.visaType,
             citizenship: req.body.citizenship,
             status: 'incomplete'
         });
+
         const savedApplication = await application.save();
-        console.log('Page1: Application saved with id:', savedApplication._id);
-        
+        console.log('Page1: Created application:', savedApplication._id);
+
+        // Store application ID in session
         req.session.applicationId = savedApplication._id;
-        req.session.save((err) => {
-            if (err) {
-                console.error('Session save error on page1:', err);
-                return res.status(500).send("Error saving session: " + err.message);
-            }
-            console.log("Session saved successfully; redirecting to /page2");
-            res.redirect('/page2');
+        
+        // Save session before redirect
+        await new Promise((resolve, reject) => {
+            req.session.save(err => {
+                if (err) {
+                    console.error('Session save error:', err);
+                    return reject(err);
+                }
+                console.log('Session saved successfully');
+                resolve();
+            });
         });
+
+        // Redirect with 303 status code
+        return res.redirect(303, '/page2');
+
     } catch (err) {
-        console.error("Error in /page1 route:", err);
-        return res.status(500).send("Error in page1: " + err.message);
+        console.error("Page1 error:", err);
+        return res.status(500).render('error', {
+            title: 'Application Error',
+            message: 'Failed to save initial application'
+        });
     }
 });
 
-
-// Page 2 - Save personal details into DB
-// GET /page2 Route
+// Page 2: Personal Details
 router.get('/page2', checkSessionData, async (req, res) => {
     try {
-        console.log("GET /page2: applicationId from session:", req.session.applicationId);
         const application = await Application.findById(req.session.applicationId);
+        
         if (!application) {
-            console.error('GET /page2: Application not found for id:', req.session.applicationId);
-            return res.redirect('/?error=application_not_found');
+            console.error('Application not found:', req.session.applicationId);
+            return res.redirect('/?error=invalid_application');
         }
-        console.log("GET /page2: Retrieved application data:", application);
+
         res.render('page2', {
             data: application,
             countries: countryNames,
             title: 'Step 2: Personal Details'
         });
+
     } catch (error) {
-        console.error('GET /page2: Error loading application:', error);
+        console.error('Page2 load error:', error);
         res.redirect('/?error=db_error');
     }
 });
 
-// POST /page2 Route
 router.post('/page2', checkSessionData, async (req, res) => {
     try {
         const update = {
@@ -100,41 +109,54 @@ router.post('/page2', checkSessionData, async (req, res) => {
             phone: req.body.phone,
             passportCitizenship: req.body.passportCitizenship,
             firstName: req.body.firstName,
-            lastName: req.body.lastName
+            lastName: req.body.lastName,
+            updatedAt: new Date()
         };
-        await Application.findByIdAndUpdate(req.session.applicationId, update);
-        console.log('Page2: Application updated for id:', req.session.applicationId);
+
+        await Application.findByIdAndUpdate(
+            req.session.applicationId,
+            { $set: update },
+            { new: true, runValidators: true }
+        );
+
+        console.log('Page2: Updated application:', req.session.applicationId);
         res.redirect('/payment');
+
     } catch (error) {
         console.error('Page2 update error:', error);
-        res.status(500).send("Error updating page2: " + error.message);
+        res.status(500).render('error', {
+            title: 'Update Error',
+            message: 'Failed to save personal details'
+        });
     }
 });
 
-
-
-
-// Payment Page (GET) - load application from DB
+// Payment Page
 router.get('/payment', checkSessionData, async (req, res) => {
     try {
         const application = await Application.findById(req.session.applicationId);
-        if (!application) return res.redirect('/?error=not_found');
+        
+        if (!application) {
+            return res.redirect('/?error=application_not_found');
+        }
+
         res.render('payment', {
             title: 'Step 3: Payment Details',
             application: application
         });
+
     } catch (error) {
         console.error(error);
         res.redirect('/?error=db_error');
     }
 });
 
-// Final Submission - update payment details and complete application
+// Final Submission
 router.post('/submit', checkSessionData, upload.single('receipt'), async (req, res) => {
     try {
         if (!req.file) throw new Error('No receipt uploaded');
-        
-        // Final update with payment details and receipt
+
+        // Update application with payment details
         const update = {
             paymentMethod: req.body.paymentMethod,
             receiptPath: req.file.path,
@@ -143,8 +165,6 @@ router.post('/submit', checkSessionData, upload.single('receipt'), async (req, r
         };
 
         await Application.findByIdAndUpdate(req.session.applicationId, update);
-        
-        // Retrieve updated application to generate PDF
         const application = await Application.findById(req.session.applicationId);
 
         // Generate PDF
@@ -163,8 +183,10 @@ router.post('/submit', checkSessionData, upload.single('receipt'), async (req, r
         
         doc.end();
 
-        // Cleanup session
-        req.session.destroy();
+        // Clear session
+        req.session.destroy(err => {
+            if (err) console.error('Session destruction error:', err);
+        });
 
         res.render('success', {
             title: 'Application Submitted',
