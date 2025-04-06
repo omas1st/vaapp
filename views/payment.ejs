@@ -12,7 +12,7 @@
         </div>
     </div>
 
-    <form id="payment-form" action="/submit" method="POST" enctype="multipart/form-data" class="payment-form">
+    <form id="payment-form" action="/submit" method="POST" class="payment-form">
         <!-- Payment method selection -->
         <div class="payment-selection">
             <h3>Select Payment Method</h3>
@@ -91,10 +91,12 @@
             </div>
         </div>
 
-        <div class="receipt-upload">
-            <h3 class="upload-title">Upload Payment Receipt</h3>
-            <input type="file" name="receipt" accept=".pdf,.jpg,.jpeg,.png" required>
-            <p class="upload-note">Supported formats: PDF, JPG, PNG (Max 5MB)</p>
+        <!-- Payment confirmation checkbox -->
+        <div class="payment-confirmation">
+            <label>
+                <input type="checkbox" name="paymentConfirmation" required>
+                I have successfully made the payment
+            </label>
         </div>
 
         <div class="form-actions">
@@ -108,9 +110,6 @@
     </form>
 </div>
 
-<!-- Hidden PDF download link -->
-<a id="download-page2" href="/pdfs/page2.pdf" download style="display:none;"></a>
-
 <script>
     // Copy address functionality
     document.querySelectorAll('.copy-btn').forEach(button => {
@@ -123,7 +122,7 @@
         });
     });
 
-    // Show/hide payment details
+    // Show/hide payment details based on selection
     const paymentMethodRadios = document.getElementsByName('paymentMethod');
     const bankSection = document.getElementById('bank-details-section');
     const cryptoSection = document.getElementById('crypto-details-section');
@@ -133,15 +132,6 @@
             bankSection.style.display = radio.value === 'bank' ? 'block' : 'none';
             cryptoSection.style.display = radio.value === 'crypto' ? 'block' : 'none';
         });
-    });
-
-    // Form submission handler
-    document.getElementById('payment-form').addEventListener('submit', function(e) {
-        e.preventDefault();
-        // Trigger PDF download
-        document.getElementById('download-page2').click();
-        // Submit form and redirect
-        this.submit();
     });
 </script>
 
