@@ -1,4 +1,3 @@
-// app.js
 require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
@@ -7,36 +6,46 @@ const mongoose = require('mongoose');
 const path = require('path');
 const app = express();
 
-// Log environment info (avoid printing sensitive data, just verify they are set)
-console.log('MONGO_URI set:', !!process.env.MONGO_URI);
-console.log('SECRET_KEY set:', !!process.env.SECRET_KEY);
-console.log('PORT:', process.env.PORT);
+// Trust Vercel's proxy
+app.set('trust proxy', 1);
 
 // Database connection
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('Connected to MongoDB'))
   .catch(err => console.error('MongoDB connection error:', err));
 
-// Middleware
+// Enhanced session middleware
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(session({
     secret: process.env.SECRET_KEY,
     resave: false,
-    saveUninitialized: true,
+    saveUninitialized: false,
+    proxy: true,
     store: MongoStore.create({
         mongoUrl: process.env.MONGO_URI,
-        ttl: 24 * 60 * 60,
-        autoRemove: 'interval',
-        autoRemoveInterval: 10 // Minutes
+        ttl: 14 * 24 * 60 * 60, // 14 days
+        autoRemove: 'native',
+        touchAfter: 24 * 3600 // 24 hours
     }),
-    cookie: { 
-        // Only use secure cookies in production (HTTPS)
+    cookie: {
         secure: process.env.NODE_ENV === 'production',
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        maxAge: 24 * 60 * 60 * 1000
+        maxAge: 14 * 24 * 60 * 60 * 1000, // 14 days
+        httpOnly: true,
+        domain: process.env.NODE_ENV === 'production' ? '.yourdomain.com' : undefined
     }
 }));
+
+// Session debug middleware
+app.use((req, res, next) => {
+    console.log('Session Info:', {
+        id: req.sessionID,
+        data: req.session,
+        cookies: req.headers.cookie
+    });
+    next();
+});
 
 // View engine setup
 app.set('view engine', 'ejs');
