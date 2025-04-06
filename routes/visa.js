@@ -91,27 +91,6 @@ router.get('/page2', checkSessionData, async (req, res) => {
         res.redirect('/?error=db_error');
     }
 });
-// GET /page2 Route
-// GET /page2 Route
-router.get('/page2', checkSessionData, async (req, res) => {
-    try {
-        console.log("GET /page2: applicationId from session:", req.session.applicationId);
-        const application = await Application.findById(req.session.applicationId);
-        if (!application) {
-            console.error('GET /page2: Application not found for id:', req.session.applicationId);
-            return res.redirect('/?error=application_not_found');
-        }
-        console.log("GET /page2: Retrieved application data:", application);
-        res.render('page2', {
-            data: application,
-            countries: countryNames,
-            title: 'Step 2: Personal Details'
-        });
-    } catch (error) {
-        console.error('GET /page2: Error loading application:', error);
-        res.redirect('/?error=db_error');
-    }
-});
 
 // POST /page2 Route
 router.post('/page2', checkSessionData, async (req, res) => {
