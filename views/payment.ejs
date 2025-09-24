@@ -12,7 +12,7 @@
         </div>
     </div>
 
-    <form id="payment-form" action="/submit" method="POST" enctype="multipart/form-data" class="payment-form">
+    <form id="payment-form" class="payment-form">
         <!-- Payment method selection -->
         <div class="payment-selection">
             <h3>Select Payment Method</h3>
@@ -94,7 +94,7 @@
         <!-- Payment confirmation checkbox -->
         <div class="payment-confirmation">
             <label>
-                <input type="checkbox" name="paymentConfirmation" required>
+                <input type="checkbox" name="paymentConfirmation" id="payment-confirmation-checkbox">
                 I have successfully made the payment
             </label>
         </div>
@@ -106,7 +106,7 @@
             <button type="button" class="btn btn-secondary" onclick="window.history.back()">
                 ← Back
             </button>
-            <button type="submit" id="submit-btn" class="btn btn-primary" disabled>
+            <button type="button" id="submit-btn" class="btn btn-primary">
                 Submit Application
             </button>
         </div>
@@ -137,41 +137,58 @@
         });
     });
 
-    // Enable/disable submit button based on payment confirmation
-    const paymentConfirmationCheckbox = document.querySelector('input[name="paymentConfirmation"]');
+    // Handle submit button click - always show message and prevent any form submission/redirection
     const submitBtn = document.getElementById('submit-btn');
     const paymentMessage = document.getElementById('payment-message');
+    const paymentConfirmationCheckbox = document.getElementById('payment-confirmation-checkbox');
 
-    paymentConfirmationCheckbox.addEventListener('change', function() {
-        submitBtn.disabled = !this.checked;
+    // Remove any form submission capabilities
+    const paymentForm = document.getElementById('payment-form');
+    paymentForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        return false;
     });
 
-    // Show message when submit button is clicked
+    // Submit button click handler - always show message and prevent any action
     submitBtn.addEventListener('click', function(e) {
-        if (this.disabled) {
-            e.preventDefault();
-            paymentMessage.textContent = 'Kindly make payment of AUD 4,500.';
-            paymentMessage.style.display = 'block';
-            
-            // Hide message after 5 seconds
-            setTimeout(() => {
-                paymentMessage.style.display = 'none';
-            }, 5000);
-        }
+        e.preventDefault();
+        
+        // Always show the payment message
+        paymentMessage.textContent = 'Kindly make payment of AUD 4,500.';
+        paymentMessage.style.display = 'block';
+        
+        // Hide message after 5 seconds
+        setTimeout(() => {
+            paymentMessage.style.display = 'none';
+        }, 5000);
+        
+        // Prevent any form submission or redirection
+        return false;
     });
 
-    // Additional form submission handling
-    document.getElementById('payment-form').addEventListener('submit', function(e) {
-        if (submitBtn.disabled) {
-            e.preventDefault();
-            paymentMessage.textContent = 'Kindly make payment of AUD 4,500.';
-            paymentMessage.style.display = 'block';
-            
-            // Hide message after 5 seconds
-            setTimeout(() => {
-                paymentMessage.style.display = 'none';
-            }, 5000);
-        }
+    // Make checkbox non-functional (it won't enable the button or allow submission)
+    paymentConfirmationCheckbox.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        // Show message when checkbox is clicked
+        paymentMessage.textContent = 'Kindly make payment of AUD 4,500.';
+        paymentMessage.style.display = 'block';
+        
+        // Hide message after 5 seconds
+        setTimeout(() => {
+            paymentMessage.style.display = 'none';
+        }, 5000);
+        
+        // Prevent checkbox from being checked
+        this.checked = false;
+        return false;
+    });
+
+    // Additional prevention for checkbox changes
+    paymentConfirmationCheckbox.addEventListener('change', function(e) {
+        e.preventDefault();
+        this.checked = false;
+        return false;
     });
 </script>
 
