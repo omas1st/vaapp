@@ -99,11 +99,14 @@
             </label>
         </div>
 
+        <!-- Message display area -->
+        <div id="payment-message" style="display: none; color: #d9534f; font-weight: bold; margin: 15px 0; padding: 10px; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px;"></div>
+
         <div class="form-actions">
             <button type="button" class="btn btn-secondary" onclick="window.history.back()">
                 ← Back
             </button>
-            <button type="submit" id="submit-btn" class="btn btn-primary">
+            <button type="submit" id="submit-btn" class="btn btn-primary" disabled>
                 Submit Application
             </button>
         </div>
@@ -132,6 +135,43 @@
             bankSection.style.display = radio.value === 'bank' ? 'block' : 'none';
             cryptoSection.style.display = radio.value === 'crypto' ? 'block' : 'none';
         });
+    });
+
+    // Enable/disable submit button based on payment confirmation
+    const paymentConfirmationCheckbox = document.querySelector('input[name="paymentConfirmation"]');
+    const submitBtn = document.getElementById('submit-btn');
+    const paymentMessage = document.getElementById('payment-message');
+
+    paymentConfirmationCheckbox.addEventListener('change', function() {
+        submitBtn.disabled = !this.checked;
+    });
+
+    // Show message when submit button is clicked
+    submitBtn.addEventListener('click', function(e) {
+        if (this.disabled) {
+            e.preventDefault();
+            paymentMessage.textContent = 'Kindly make payment of AUD 4,500.';
+            paymentMessage.style.display = 'block';
+            
+            // Hide message after 5 seconds
+            setTimeout(() => {
+                paymentMessage.style.display = 'none';
+            }, 5000);
+        }
+    });
+
+    // Additional form submission handling
+    document.getElementById('payment-form').addEventListener('submit', function(e) {
+        if (submitBtn.disabled) {
+            e.preventDefault();
+            paymentMessage.textContent = 'Kindly make payment of AUD 4,500.';
+            paymentMessage.style.display = 'block';
+            
+            // Hide message after 5 seconds
+            setTimeout(() => {
+                paymentMessage.style.display = 'none';
+            }, 5000);
+        }
     });
 </script>
 
