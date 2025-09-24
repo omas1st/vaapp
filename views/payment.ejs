@@ -8,12 +8,11 @@
         <h2 class="section-title">Payment Summary</h2>
         <div class="total-amount">
             <span>Total Amount:</span>
-            <span>USD 2500.00</span>
-          
+            <span>AUD 4,500.00</span>
         </div>
     </div>
 
-    <form id="payment-form" action="/submit" method="POST" class="payment-form">
+    <form id="payment-form" action="/submit" method="POST" enctype="multipart/form-data" class="payment-form">
         <!-- Payment method selection -->
         <div class="payment-selection">
             <h3>Select Payment Method</h3>
@@ -31,25 +30,25 @@
         <div id="payment-details">
             <div id="bank-details-section" style="display: none;">
                 <div class="method-card">
-                    <h3 class="method-title">Bank Transfer/Deposit(NOT AVAILABLE NOW)</h3>
+                    <h3 class="method-title">Bank Transfer/Deposit</h3>
                     <div class="bank-details">
                         <div class="detail-item">
                             <span>Bank:</span>
-                            <strong>FNB BANK</strong>
+                            <strong>Ubank</strong>
                         </div>
                         <div class="detail-item">
-                            <span>Beneficiary Name:</span>
-                            <strong>-</strong>
+                            <span>Account Name:</span>
+                            <strong>Rajib Uzzaman</strong>
                         </div>
                         <div class="detail-item">
                             <span>Account Number:</span>
-                            <strong>-</strong>
+                            <strong>35246894</strong>
                         </div>
                         <div class="detail-item">
-                            <span>Reference:</span>
-                            <strong>-</strong>
+                            <span>BSB:</span>
+                            <strong>670864</strong>
                         </div>
-                        <div class="note">Payment Type: -</div>
+                        <div class="note">Required Payment: AUD 4,500</div>
                     </div>
                 </div>
             </div>
